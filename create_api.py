@@ -1,17 +1,111 @@
+from langchain import PromptTemplate, LLMChain
+from transformers import pipeline
+from langchain.llms import HuggingFacePipeline
+
+# Load the Hugging Face model using a text-generation pipeline
+generator = pipeline("text-generation", model="EleutherAI/gpt-neo-1.3B", max_new_tokens=1500)
+
+# Wrap the Hugging Face pipeline into LangChain's LLM interface
+llm = HuggingFacePipeline(pipeline=generator)
+
+# Define the prompt template for LangChain
+prompt_template = PromptTemplate(
+    input_variables=["project_description"],
+    template="""
+You are an expert Python API developer. The user needs an API with the following requirements: {project_description}. 
+Generate the complete FastAPI code, including authentication and pagination. Return only code and nothing else.
+"""
+)
+
+# Create a LangChain LLMChain using the prompt and the model
+llm_chain = LLMChain(
+    prompt=prompt_template,
+    llm=llm
+)
+
+# Define the input to your model (topic for text generation)
+prompt = "Create an API to store, retrieve, update employee data"
+
+# Run the model to generate FastAPI code based on the description
+generated_text = llm_chain.run({
+    "project_description": prompt
+})
+
+print("Generated text:\n", generated_text)
+ubuntu@ip-172-31-34-30:~/zenlegacy-api-marketplace$ ^C
+ubuntu@ip-172-31-34-30:~/zenlegacy-api-marketplace$ cat create_api.py 
 import os, random
 
 def generate_code(project_id):
-    code = '''from fastapi import FastAPI
+    code = '''from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
+from pydantic import BaseModel
 
+# FastAPI app initialization
 app = FastAPI()
 
-@app.get("/1234/")
-def read_root():
-    return {"Hello": "World"}
+# SQLAlchemy database setup
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"  # Using SQLite for simplicity
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-@app.get("/1234/items/{item_id}")
-def read_item(item_id: int, q: str = None):
-    return {"item_id": item_id, "q": q}'''
+Base = declarative_base()
+
+# Dependency for database session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# SQLAlchemy model
+class Item(Base):
+    __tablename__ = "items"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, index=True)
+    description = Column(String, index=True)
+
+# Create the database tables
+Base.metadata.create_all(bind=engine)
+
+# Pydantic schema for validation
+class ItemBase(BaseModel):
+    title: str
+    description: str
+
+class ItemCreate(ItemBase):
+    pass
+
+class ItemResponse(ItemBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+# CRUD operations
+@app.post("/items/", response_model=ItemResponse)
+def create_item(item: ItemCreate, db: Session = Depends(get_db)):
+    db_item = Item(title=item.title, description=item.description)
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.get("/items/", response_model=list[ItemResponse])
+def read_items(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    items = db.query(Item).offset(skip).limit(limit).all()
+    return items
+
+@app.get("/items/{item_id}", response_model=ItemResponse)
+def read_item(item_id: int, db: Session = Depends(get_db)):
+    item = db.query(Item).filter(Item.id == item_id).first()
+    if item is None:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+'''
 
     return code
 
