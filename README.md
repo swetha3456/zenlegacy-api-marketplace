@@ -40,12 +40,12 @@ Enter a description of the API you want to generate in the prompt field.
 Click the Deploy button to generate the code and deploy the api.
 API usage instructions will be displayed on screen.
 
-### Novel Features
+## Novel Features
 
 - API generation from natural language prompts
 - Automated deployment
 
-### Future Enhancements
+## Future Enhancements
 
 - API Customization: Allowing more customization to the API once it has been generated.
 - User Authentication: Implement user accounts for saving and managing API projects.
