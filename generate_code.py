@@ -64,7 +64,7 @@ def {{ operation.function_name }}({% if operation.body %}{{ operation.body }}: {
 
     question_template = f"""
     You are an expert Python API developer. The user needs an API with the following requirements: {user_input}. 
-    Generate the complete FastAPI code enclosed in triple backticks(```) and nothing else. Ensure there are no syntax errors. Ensure to use double underscores for __tablename__. Do not use "Depends". Here is the code template you need to follow: {code_template}"""
+    Generate the complete FastAPI code and nothing else. Ensure there are no syntax errors. Ensure to use double underscores for __tablename__. Do not use "Depends". Here is the code template you need to follow: {code_template}"""
 
     template = """Question: {question}
 
@@ -80,10 +80,10 @@ def {{ operation.function_name }}({% if operation.body %}{{ operation.body }}: {
 
 def extract_code(text):
     # Regular expression to capture code between triple backticks
-    code_blocks = "\n".join(re.findall(r'```(.*?)```', text, re.DOTALL))
-    code_blocks = code_blocks[code_blocks.find("from"):]
+    text = text[text.find("from"):]
+    text = text[:text.find("`")]
 
-    return code_blocks
+    return text
 
 if __name__ == "__main__":
     print(extract_code(get_api_code("API for storing and retrieving employee data")))
