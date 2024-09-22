@@ -27,6 +27,7 @@ git clone https://github.com/swetha3456/zenlegacy-api-marketplace.git
 ```
 pip install langchain langchain_core langchain_community langchain_ollama streamlit sqlalchemy fastapi uvicorn
 ```
+- Replace the ```ip_address``` string in streamlit_frontend.py with the ip address of your local server.
 
 ### Run the Streamlit App:
 ```
